@@ -1,0 +1,14 @@
+{
+  "name": "plex-scripts",
+  "version": "1.0.0",
+  "description": "Collection of scripts used to maintain and enhance Plex functionality",
+  "main": "src/index.js",
+  "repository": "git@github.com:ManeeshChiba/plex-scripts.git",
+  "author": "Maneesh Chiba <mpchiba@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env.local ./src/index.js"
+  }
+}
