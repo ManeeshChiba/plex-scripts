@@ -25,7 +25,8 @@ export async function getMovieID(searchTerm) {
   if (response?.results[0]?.id) {
     return response?.results[0]?.id;
   } else {
-    console.error(JSON.stringify(response));
-    throw new Error(`ID for ${searchTerm} not found!`);
+    console.warn(`ID for ${searchTerm} not found!`);
+    console.warn(JSON.stringify(response));
+    return null;
   }
 }

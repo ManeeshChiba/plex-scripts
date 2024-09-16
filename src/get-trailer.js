@@ -21,48 +21,66 @@ function filterTrailers(vidoes) {
     .sort((a, b) => b.size - a.size);
 }
 
-function addToManifest(payload) {
+export async function addToManifest(payload) {
   const manifestFilePath = path.join(__root, "manifests", "manifest.json");
 
-  fs.stat(path.resolve(manifestFilePath), function (err) {
-    if (err == null) {
-      const data = fs.readFileSync(path.resolve(manifestFilePath), "utf8");
-      try {
-        const asJSON = JSON.parse(data);
-        const newPayload = { ...asJSON, ...payload };
-        const serializedPayload = JSON.stringify(newPayload);
+  return new Promise((resolve) => {
+    fs.stat(path.resolve(manifestFilePath), function (err) {
+      if (err == null) {
+        const data = fs.readFileSync(path.resolve(manifestFilePath), "utf8");
+        try {
+          const asJSON = JSON.parse(data);
+          const newPayload = { ...asJSON, ...payload };
+          const serializedPayload = JSON.stringify(newPayload);
+          fs.writeFile(manifestFilePath, serializedPayload, "utf8", () => {
+            console.log(`📝 MANIFEST UPDATED`);
+            resolve();
+          });
+        } catch (err) {
+          console.error(err);
+        }
+        // Exisits, open and rewrite;
+      } else if (err.code === "ENOENT") {
+        const serializedPayload = JSON.stringify(payload);
         fs.writeFile(manifestFilePath, serializedPayload, "utf8", () => {
-          console.log("File written");
+          console.log(`📝 MANIFEST CREATED`);
+          resolve();
         });
-      } catch (err) {
-        console.error(err);
       }
-      // Exisits, open and rewrite;
-    } else if (err.code === "ENOENT") {
-      const serializedPayload = JSON.stringify(payload);
-      fs.writeFile(manifestFilePath, serializedPayload, "utf8", () => {
-        console.log("File written");
-      });
+    });
+  });
+}
+
+export default async function main(title, addToFile = true) {
+  return new Promise(async (resolve) => {
+    if (String(title).indexOf("/") == -1) {
+      console.log(`🔍 BEGIN SEARCH FOR: ${title}`);
+      const id = await getMovieID(title);
+      if (id) {
+        console.log(`🪪 ${title}: ID ${id}`);
+        const videos = await getMovieVideos(id);
+        const filtered = filterTrailers(videos);
+        console.log(`🎥 ${title}: FOUND ${filtered?.length} TRAILERS`);
+        const bestTrailer = filtered[0];
+        const manifestEntry = {
+          [`${title}`]: {
+            tvdbID: id,
+            videoID: bestTrailer.key,
+            youtubeURL: `https://www.youtube.com/watch?v=${bestTrailer.key}`,
+            resolution: bestTrailer.size,
+          },
+        };
+        if (addToFile) {
+          await addToManifest(manifestEntry);
+        } else {
+          resolve(manifestEntry);
+        }
+        resolve();
+      } else {
+        console.warn(`ID not found for ${title}. Skipping...`);
+      }
     }
   });
 }
 
-async function main() {
-  console.log(`🔍 BEGIN SEARCH FOR: ${scriptArgument}`);
-  const id = await getMovieID(scriptArgument);
-  console.log(`🪪 ID FOUND: ${id}`);
-  const videos = await getMovieVideos(id);
-  const filtered = filterTrailers(videos);
-  console.log(`🎥 FOUND ${filtered?.length} trailers`);
-  const bestTrailer = filtered[0];
-  const manifestEntry = {
-    [`${scriptArgument}`]: {
-      tvdbID: id,
-      videoID: bestTrailer.key,
-      resolution: bestTrailer.size,
-    },
-  };
-  addToManifest(manifestEntry);
-}
-
-main();
+main(scriptArgument);

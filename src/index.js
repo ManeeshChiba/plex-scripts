@@ -10,7 +10,7 @@ const passthrough = process.argv.splice(3, process.argv.length).join(" ");
 
 const scripts = {
   GET_TRAILER: "get-trailer",
-  SOMETHING_ELSE: "something-else",
+  FETCH_FROM_PATH: "fetch-from-path",
 };
 
 function main() {
@@ -18,6 +18,13 @@ function main() {
     case scripts.GET_TRAILER:
       {
         childProcess.execSync(`node ./src/get-trailer.js ${passthrough}`, {
+          stdio: "inherit",
+        });
+      }
+      break;
+    case scripts.FETCH_FROM_PATH:
+      {
+        childProcess.execSync(`node ./src/fetch-from-path.js ${passthrough}`, {
           stdio: "inherit",
         });
       }
