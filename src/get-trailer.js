@@ -54,9 +54,9 @@ export async function finalizeManifest() {
 }
 
 function updateLog(content) {
-  const logFile = path.join(__root, "manifests", "debug.log");
+  const logFile = path.join(__root, "cache", "debug.log");
   const logger = fs.createWriteStream(logFile, { flags: "a" });
-  logger.write(`${new Date().toISOString} ${content}\n`);
+  logger.write(`${new Date().toISOString()} ${content}\n`);
 }
 
 function sleep(seconds) {
@@ -98,7 +98,8 @@ export default async function main(title, payloadAdditions) {
         }
         resolve();
       } else {
-        console.warn(`ID not found for ${title}. Skipping...`);
+        updateLog(`ID not found for ${title}.`);
+        resolve();
       }
     }
   });
