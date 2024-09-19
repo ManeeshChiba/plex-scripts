@@ -31,7 +31,7 @@ export async function addToManifest(payload) {
         try {
           const asJSON = JSON.parse(data);
           const newPayload = { ...asJSON, ...payload };
-          const serializedPayload = JSON.stringify(newPayload);
+          const serializedPayload = JSON.stringify(newPayload, null, 4);
           fs.writeFile(manifestFilePath, serializedPayload, "utf8", () => {
             console.log(`📝 MANIFEST UPDATED`);
             resolve();
@@ -41,7 +41,7 @@ export async function addToManifest(payload) {
         }
         // Exisits, open and rewrite;
       } else if (err.code === "ENOENT") {
-        const serializedPayload = JSON.stringify(payload);
+        const serializedPayload = JSON.stringify(payload, null, 4);
         fs.writeFile(manifestFilePath, serializedPayload, "utf8", () => {
           console.log(`📝 MANIFEST CREATED`);
           resolve();
@@ -51,13 +51,23 @@ export async function addToManifest(payload) {
   });
 }
 
+function sleep(seconds) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, seconds);
+  });
+}
+
 export default async function main(title, addToFile = true) {
   return new Promise(async (resolve) => {
     if (String(title).indexOf("/") == -1) {
       console.log(`🔍 BEGIN SEARCH FOR: ${title}`);
+      await sleep(892);
       const id = await getMovieID(title);
       if (id) {
         console.log(`🪪 ${title}: ID ${id}`);
+        await sleep(640);
         const videos = await getMovieVideos(id);
         const filtered = filterTrailers(videos);
         console.log(`🎥 ${title}: FOUND ${filtered?.length} TRAILERS`);

@@ -18,11 +18,7 @@ async function readDirectory(stringPath) {
     })
   );
 
-  return filtered
-    .filter((x) => x)
-    .map((name) =>
-      name.replace(/ *\([^)]*\) */g, "").replace(/\[[^\]]*\]/g, "")
-    );
+  return filtered.filter((x) => x);
 }
 
 async function main() {
@@ -30,12 +26,21 @@ async function main() {
   const folders = await readDirectory(dirPath);
   console.log(`📂 FOUND ${folders.length} DIRECTORIES`);
   let finalPayload = {};
-  await Promise.all(
-    folders.map(async (folder) => {
-      const payload = await getTrailer(folder, false);
-      finalPayload = { ...finalPayload, ...payload };
-    })
-  );
+
+  for (const folder of folders) {
+    const movie = folder
+      .replace(/ *\([^)]*\) */g, "")
+      .replace(/\[[^\]]*\]/g, "");
+    const payload = await getTrailer(movie, false);
+    finalPayload = {
+      ...finalPayload,
+      [`${movie}`]: {
+        ...payload[movie],
+        folder: `${dirPath}/${folder}`,
+      },
+    };
+  }
+
   await addToManifest(finalPayload);
 }
 
