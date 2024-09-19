@@ -21,34 +21,42 @@ function filterTrailers(vidoes) {
     .sort((a, b) => b.size - a.size);
 }
 
-export async function addToManifest(payload) {
-  const manifestFilePath = path.join(__root, "manifests", "manifest.json");
-
+const manifestFilePath = path.join(__root, "manifests", "manifest.json");
+const metasFilePath = path.join(__root, "cache", "metas.txt");
+export async function addToMetaFile(payload) {
   return new Promise((resolve) => {
-    fs.stat(path.resolve(manifestFilePath), function (err) {
-      if (err == null) {
-        const data = fs.readFileSync(path.resolve(manifestFilePath), "utf8");
-        try {
-          const asJSON = JSON.parse(data);
-          const newPayload = { ...asJSON, ...payload };
-          const serializedPayload = JSON.stringify(newPayload, null, 4);
-          fs.writeFile(manifestFilePath, serializedPayload, "utf8", () => {
-            console.log(`📝 MANIFEST UPDATED`);
-            resolve();
-          });
-        } catch (err) {
-          console.error(err);
-        }
-        // Exisits, open and rewrite;
-      } else if (err.code === "ENOENT") {
-        const serializedPayload = JSON.stringify(payload, null, 4);
-        fs.writeFile(manifestFilePath, serializedPayload, "utf8", () => {
-          console.log(`📝 MANIFEST CREATED`);
-          resolve();
-        });
-      }
+    const stream = fs.createWriteStream(metasFilePath, { flags: "a" });
+    const content = `${JSON.stringify(payload, null, 4)},\n`;
+    stream.write(content);
+    resolve();
+  });
+}
+
+export async function finalizeManifest() {
+  return new Promise((resolve) => {
+    const data = fs.readFileSync(path.resolve(metasFilePath), "utf8");
+    const serial = `[${data.slice(0, -2)}]`;
+    const metaArray = JSON.parse(serial).flat();
+    const manifest = metaArray.reduce((acc, curr) => {
+      return {
+        ...acc,
+        [`${curr["title"]}`]: {
+          ...curr,
+        },
+      };
+    }, {});
+    const serializedPayload = JSON.stringify(manifest, null, 4);
+    fs.writeFile(manifestFilePath, serializedPayload, "utf8", () => {
+      console.log(`📝 MANIFEST CREATED`);
+      resolve();
     });
   });
+}
+
+function updateLog(content) {
+  const logFile = path.join(__root, "manifests", "debug.log");
+  const logger = fs.createWriteStream(logFile, { flags: "a" });
+  logger.write(`${new Date().toISOString} ${content}\n`);
 }
 
 function sleep(seconds) {
@@ -59,7 +67,7 @@ function sleep(seconds) {
   });
 }
 
-export default async function main(title, addToFile = true) {
+export default async function main(title, payloadAdditions) {
   return new Promise(async (resolve) => {
     if (String(title).indexOf("/") == -1) {
       console.log(`🔍 BEGIN SEARCH FOR: ${title}`);
@@ -71,19 +79,22 @@ export default async function main(title, addToFile = true) {
         const videos = await getMovieVideos(id);
         const filtered = filterTrailers(videos);
         console.log(`🎥 ${title}: FOUND ${filtered?.length} TRAILERS`);
-        const bestTrailer = filtered[0];
-        const manifestEntry = {
-          [`${title}`]: {
-            tvdbID: id,
-            videoID: bestTrailer.key,
-            youtubeURL: `https://www.youtube.com/watch?v=${bestTrailer.key}`,
-            resolution: bestTrailer.size,
-          },
-        };
-        if (addToFile) {
-          await addToManifest(manifestEntry);
-        } else {
-          resolve(manifestEntry);
+        if (filtered.length <= 0) {
+          updateLog(`${title} not found.`);
+        }
+        if (filtered.length > 0) {
+          const bestTrailer = filtered[0];
+          const manifestEntry = [
+            {
+              title: title,
+              tvdbID: id,
+              videoID: bestTrailer.key,
+              youtubeURL: `https://www.youtube.com/watch?v=${bestTrailer.key}`,
+              resolution: bestTrailer.size,
+              ...payloadAdditions,
+            },
+          ];
+          await addToMetaFile(manifestEntry);
         }
         resolve();
       } else {

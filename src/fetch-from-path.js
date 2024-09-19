@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "node:fs/promises";
-import getTrailer, { addToManifest } from "./get-trailer.js";
+import getTrailer, { finalizeManifest } from "./get-trailer.js";
 
 const dirPath = process.argv[2];
 
@@ -25,23 +25,17 @@ async function main() {
   console.log(`👀 GRABBING DIRECTORIES AT ${dirPath}`);
   const folders = await readDirectory(dirPath);
   console.log(`📂 FOUND ${folders.length} DIRECTORIES`);
-  let finalPayload = {};
 
   for (const folder of folders) {
     const movie = folder
       .replace(/ *\([^)]*\) */g, "")
       .replace(/\[[^\]]*\]/g, "");
-    const payload = await getTrailer(movie, false);
-    finalPayload = {
-      ...finalPayload,
-      [`${movie}`]: {
-        ...payload[movie],
-        folder: `${dirPath}/${folder}`,
-      },
-    };
+    await getTrailer(movie, {
+      folder: `${dirPath}/${folder}`,
+    });
   }
 
-  await addToManifest(finalPayload);
+  await finalizeManifest();
 }
 
 main();

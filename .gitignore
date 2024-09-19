@@ -1,1 +1,4 @@
 .env.local
+/manifests/*.log
+/manifests/*.json
+/cache/*.txt
