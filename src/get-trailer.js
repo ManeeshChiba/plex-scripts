@@ -71,11 +71,11 @@ export default async function main(title, payloadAdditions) {
   return new Promise(async (resolve) => {
     if (String(title).indexOf("/") == -1) {
       console.log(`🔍 BEGIN SEARCH FOR: ${title}`);
-      await sleep(892);
+      await sleep(392);
       const id = await getMovieID(title);
       if (id) {
         console.log(`🪪 ${title}: ID ${id}`);
-        await sleep(640);
+        await sleep(140);
         const videos = await getMovieVideos(id);
         const filtered = filterTrailers(videos);
         console.log(`🎥 ${title}: FOUND ${filtered?.length} TRAILERS`);
